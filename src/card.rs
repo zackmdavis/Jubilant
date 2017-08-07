@@ -24,7 +24,7 @@ pub struct Card {
 }
 
 impl Card {
-    fn new(color: Color, value: Value) -> Self {
+    pub fn new(color: Color, value: Value) -> Self {
         Self { color, value }
     }
 }
