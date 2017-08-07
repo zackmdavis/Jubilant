@@ -1,0 +1,7 @@
+[package]
+name = "jubilant_hidden_information_fireworks_game"
+version = "0.0.1"
+authors = ["Zack M. Davis <code@zackmdavis.net>"]
+
+[dependencies]
+itertools = "0.6"
