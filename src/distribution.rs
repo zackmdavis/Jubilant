@@ -6,6 +6,9 @@ use card::{self, Card};
 
 
 pub struct Distribution {
+    // XXX: actually, probabilities are overkill: it's crisper to keep track of
+    // which cards are possible, and derive a probability from that if
+    // necessary
     backing: HashMap<Card, f64>
 }
 
