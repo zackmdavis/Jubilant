@@ -6,28 +6,34 @@ use card::{self, Card};
 
 
 pub struct Distribution {
-    // XXX: actually, probabilities are overkill: it's crisper to keep track of
-    // which cards are possible, and derive a probability from that if
-    // necessary
-    backing: HashMap<Card, f64>
+    backing: HashMap<Card, usize>
 }
 
 impl Distribution {
     pub fn new() -> Self {
         let deck = card::deal();
-        let density = 1./(deck.len() as f64);
         let mut distribution = Distribution {
             backing: HashMap::with_capacity(deck.len())
         };
         for card in deck {
-            let p = distribution.backing.entry(card).or_insert(0.);
-            *p += density;
+            let frequency = distribution.backing.entry(card).or_insert(0);
+            *frequency += 1;
         }
         distribution
     }
 
+    pub fn probability(&self, card: Card) -> f64 {
+        let total: usize = self.backing.values().sum();
+        *self.backing.get(&card).unwrap_or(&0) as f64 / (total as f64)
+    }
+
     pub fn entropy(&self) -> f64 {
-        self.backing.values().map(|p| -p * p.log2()).sum()
+        let values = self.backing.values().cloned().collect::<Vec<usize>>();
+        let total = values.iter().sum::<usize>() as f64;
+        values.iter().map(|d| {
+            let f = (*d) as f64;
+            -(f/total) * (f/total).log2()
+        }).sum()
     }
 
 }
@@ -53,10 +59,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn concerning_conservation_of_probability_after_card_exclusion() {
+    fn concerning_intial_entropy() {
         let distribution = Distribution::new();
-        assert_eq_within_epsilon!(1., distribution.backing.values().sum::<f64>(),
-                                  0.000001);
+        assert_eq_within_epsilon!(4.5683, distribution.entropy(), 0.0001);
     }
-
 }
