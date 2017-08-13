@@ -24,6 +24,7 @@ impl GameStateModel {
         GameStateModel { hands }
     }
 
+    // maybe rename `account_for` or similar??
     fn decrement(&mut self, player_index: usize, card: Card) {
         for hand in self.hands[player_index].iter_mut() {
             hand.decrement(card);
@@ -77,4 +78,18 @@ impl Player for PlayerInstance {
     fn observe(&mut self, _action: Action) {
         // XXX TODO
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn concerning_initial_knowledge() {
+        let prior_distribution = Distribution::new();
+        // show entropically that we know more than nothing about our own
+        // cards, but are certain about the cards we can see
+    }
+
 }
