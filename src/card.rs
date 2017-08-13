@@ -15,7 +15,7 @@ impl Color {
     }
 }
 
-pub type Value = usize;
+pub type Value = u8;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Card {

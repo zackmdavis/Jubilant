@@ -6,23 +6,65 @@ use card::{self, Card};
 
 #[derive(Copy, Clone, Default)]
 pub struct VictoryArsenal {
-    pub red: usize,
-    pub yellow: usize,
-    pub green: usize,
-    pub blue: usize,
-    pub white: usize
+    pub red: u8,
+    pub yellow: u8,
+    pub green: u8,
+    pub blue: u8,
+    pub white: u8
+}
+
+impl VictoryArsenal {
+    fn color(&self, color: card::Color) -> u8 {
+        match color {
+            card::Color::Red => self.red,
+            card::Color::Yellow => self.yellow,
+            card::Color::Green => self.green,
+            card::Color::Blue => self.blue,
+            card::Color::White => self.white,
+        }
+    }
+
+    fn bump_color(&mut self, color: card::Color) {
+        match color {
+            card::Color::Red => { self.red += 1; },
+            card::Color::Yellow => { self.yellow += 1; },
+            card::Color::Green => { self.green += 1; },
+            card::Color::Blue => { self.blue += 1; },
+            card::Color::White => { self.white += 1; },
+        }
+    }
 }
 
 pub trait Player {
-    // TODO
+    fn go(&mut self) -> Action;
+    fn observe(&mut self, action: Action);
+}
+
+#[derive(Copy, Clone)]
+pub enum HintContent {
+    Color(card::Color),
+    Value(card::Value)
+}
+
+#[derive(Copy, Clone)]
+pub enum Action {
+    Hint{
+        player: usize, // index into players
+        cards: usize, // index into hands[player]
+        hint_content: HintContent
+    },
+    Discard(Card),
+    Play(Card)
 }
 
 struct GameState {
     players: Vec<Box<Player>>,
+    turn_index: usize, // index into players
     hands: Vec<Vec<Card>>,
     deck: Vec<Card>,
-    pub discard_pile: Vec<Card>,
     pub victory_arsenal: VictoryArsenal,
+    pub hints: u8,
+    pub fuse: u8,
 }
 
 
@@ -41,11 +83,52 @@ impl GameState {
         }
         Self {
             players: Vec::new(), // TODO
+            turn_index: 0,
             hands,
             deck,
-            discard_pile: Vec::new(),
-            victory_arsenal: VictoryArsenal::default()
+            victory_arsenal: VictoryArsenal::default(),
+            hints: 8,
+            fuse: 3
         }
+    }
+
+    fn apply(&mut self, player_index: usize, action: Action) {
+        match action {
+            Action::Hint { .. } => {
+                self.hints -= 1;
+            },
+            Action::Discard(card) => {
+                self.remove_from_hand(player_index, card);
+                self.hints += 1;
+            },
+            Action::Play(card) => {
+                self.remove_from_hand(player_index, card);
+                let current = self.victory_arsenal.color(card.color);
+                if card.value == current + 1 {
+                    self.victory_arsenal.bump_color(card.color)
+                } else {
+                    self.fuse -= 1;
+                }
+            }
+        }
+    }
+
+    fn remove_from_hand(&mut self, player_index: usize, card: Card) {
+        let index = self.hands[player_index].iter().position(|c| *c == card);
+        self.hands[player_index].swap_remove(
+            index.expect("expected card to be found in hand"));
+    }
+
+    pub fn turn(&mut self) {
+        let turn_index = self.turn_index;
+        let action = self.players[self.turn_index].go();
+        for player_index in 0..self.players.len() {
+            if player_index != turn_index {
+                self.players[player_index].observe(action);
+            }
+        }
+        self.apply(turn_index, action);
+        self.turn_index = (self.turn_index + 1) % self.players.len();
     }
 
 }
