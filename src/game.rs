@@ -3,6 +3,7 @@
 use rand::{self, Rng};
 
 use card::{self, Card};
+use player::PlayerInstance;
 
 #[derive(Copy, Clone, Default)]
 pub struct VictoryArsenal {
@@ -53,8 +54,14 @@ pub enum Action {
         cards: usize, // index into hands[player]
         hint_content: HintContent
     },
-    Discard(Card),
-    Play(Card)
+    Discard {
+        player: usize,
+        card: usize
+    },
+    Play {
+        player: usize,
+        card: usize
+    }
 }
 
 pub struct GameState {
@@ -67,6 +74,13 @@ pub struct GameState {
     pub fuse: u8,
 }
 
+#[derive(Copy, Clone)]
+pub struct TableState {
+    pub turn_index: usize,
+    pub victory_arsenal: VictoryArsenal,
+    pub hints: u8,
+    pub fuse: u8,
+}
 
 impl GameState {
     pub fn new(n: usize) -> Self {
@@ -81,11 +95,26 @@ impl GameState {
             }
             hands.push(hand);
         }
+
+        let players = (0..n).map(|i| {
+            Box::new(
+                PlayerInstance::new(
+                    hands.iter().cloned().enumerate().map(|(j, h)| {
+                        if i == j {
+                            None
+                        } else {
+                            Some(h)
+                        }
+                    }).collect()
+                )
+            ) as Box<Player>
+        }).collect();
+
         Self {
-            players: Vec::new(), // TODO
-            turn_index: 0,
+            players,
             hands,
             deck,
+            turn_index: 0,
             victory_arsenal: VictoryArsenal::default(),
             hints: 8,
             fuse: 3
@@ -96,18 +125,27 @@ impl GameState {
         self.players.len()
     }
 
+    pub fn table_state(&self) -> TableState {
+        TableState {
+            turn_index: self.turn_index,
+            victory_arsenal: self.victory_arsenal,
+            hints: self.hints,
+            fuse: self.fuse
+        }
+    }
+
     fn apply(&mut self, player_index: usize, action: Action) {
         match action {
             Action::Hint { .. } => {
                 self.hints -= 1;
             },
-            Action::Discard(card) => {
-                self.remove_from_hand(player_index, card);
+            Action::Discard { player, card } => {
+                self.hands[player].swap_remove(card);
                 self.hints += 1;
                 self.draw(player_index);
             },
-            Action::Play(card) => {
-                self.remove_from_hand(player_index, card);
+            Action::Play { player, card } => {
+                let card = self.hands[player].swap_remove(card);
                 let current = self.victory_arsenal.color(card.color);
                 if card.value == current + 1 {
                     self.victory_arsenal.bump_color(card.color)
@@ -124,12 +162,6 @@ impl GameState {
             // XXX TODO deck will be empty at end of game; rework as `Result`
             .expect("deck shouldn't be empty");
         self.hands[player_index].push(new_card);
-    }
-
-    fn remove_from_hand(&mut self, player_index: usize, card: Card) {
-        let index = self.hands[player_index].iter().position(|c| *c == card);
-        self.hands[player_index].swap_remove(
-            index.expect("expected card to be found in hand"));
     }
 
     pub fn turn(&mut self) {

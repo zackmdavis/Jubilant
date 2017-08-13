@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 use card::{self, Card};
 
@@ -22,8 +23,16 @@ impl Distribution {
         distribution
     }
 
-    pub fn rule_out(&mut self, card: Card) {
-        self.backing.insert(card, 0);
+    pub fn set(&mut self, card: Card) {
+        let mut rebacking = HashMap::new();
+        rebacking.insert(card, 1);
+        self.backing = rebacking;
+    }
+
+    pub fn decrement(&mut self, card: Card) {
+        if let Entry::Occupied(mut o) = self.backing.entry(card) {
+            *o.get_mut() -= 1;
+        }
     }
 
     pub fn probability(&self, card: Card) -> f64 {
