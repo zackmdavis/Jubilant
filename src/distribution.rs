@@ -22,6 +22,10 @@ impl Distribution {
         distribution
     }
 
+    pub fn rule_out(&mut self, card: Card) {
+        self.backing.insert(card, 0);
+    }
+
     pub fn probability(&self, card: Card) -> f64 {
         let total: usize = self.backing.values().sum();
         *self.backing.get(&card).unwrap_or(&0) as f64 / (total as f64)

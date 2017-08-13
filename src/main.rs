@@ -4,6 +4,7 @@ extern crate rand;
 mod card;
 mod distribution;
 mod game;
+mod player;
 
 fn main() {
     let deck = card::deal();

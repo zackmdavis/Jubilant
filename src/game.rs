@@ -57,11 +57,11 @@ pub enum Action {
     Play(Card)
 }
 
-struct GameState {
+pub struct GameState {
     players: Vec<Box<Player>>,
-    turn_index: usize, // index into players
     hands: Vec<Vec<Card>>,
     deck: Vec<Card>,
+    pub turn_index: usize, // index into players
     pub victory_arsenal: VictoryArsenal,
     pub hints: u8,
     pub fuse: u8,
@@ -92,6 +92,10 @@ impl GameState {
         }
     }
 
+    pub fn n_players(&self) -> usize {
+        self.players.len()
+    }
+
     fn apply(&mut self, player_index: usize, action: Action) {
         match action {
             Action::Hint { .. } => {
@@ -100,6 +104,7 @@ impl GameState {
             Action::Discard(card) => {
                 self.remove_from_hand(player_index, card);
                 self.hints += 1;
+                self.draw(player_index);
             },
             Action::Play(card) => {
                 self.remove_from_hand(player_index, card);
@@ -109,8 +114,16 @@ impl GameState {
                 } else {
                     self.fuse -= 1;
                 }
+                self.draw(player_index);
             }
         }
+    }
+
+    fn draw(&mut self, player_index: usize) {
+        let new_card = self.deck.pop()
+            // XXX TODO deck will be empty at end of game; rework as `Result`
+            .expect("deck shouldn't be empty");
+        self.hands[player_index].push(new_card);
     }
 
     fn remove_from_hand(&mut self, player_index: usize, card: Card) {
